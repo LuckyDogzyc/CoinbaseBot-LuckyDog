@@ -1,0 +1,1 @@
+key_file = "J:\Trading\keys\Coinbase\DefaultAPI\cdp_api_key.json"
