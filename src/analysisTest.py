@@ -34,8 +34,8 @@ def analysis_test(start_time_str, end_time_str, interval_minutes=5, tps=3):
 
 def main():
     # 设置开始和结束时间，格式为 'YYYY-MM-DD HH:MM:SS'
-    start_time_str = '2024-11-25 10:00:00'
-    end_time_str = '2024-11-25 10:40:00'
+    start_time_str = '2024-11-27 00:20:00'
+    end_time_str = '2024-11-27 01:10:00'
 
     # 调用 analysis_test 函数，设置 TPS 为 3
     analysis_test(start_time_str, end_time_str, tps=3)

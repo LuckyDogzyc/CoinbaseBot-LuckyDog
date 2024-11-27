@@ -1,1 +1,1 @@
-key_file = "J:\Trading\keys\Coinbase\DefaultAPI\cdp_api_key.json"
+key_file = "J:\Trading\keys\Coinbase\DefaultAPI1\cdp_api_key.json"

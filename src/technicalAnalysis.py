@@ -76,6 +76,7 @@ def process_candle_data(candles):
     df['start'] = pd.to_datetime(df['start'].astype(int), unit='s', utc=True)
     numeric_columns = ['open', 'high', 'low', 'close', 'volume']
     df[numeric_columns] = df[numeric_columns].apply(pd.to_numeric)
+    df = df.sort_values('start').reset_index(drop=True)
 
     return df
 

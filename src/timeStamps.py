@@ -28,21 +28,4 @@ def generate_unix_timestamp(minutes=0, hours=0, days=0, seconds=0):
 
     return str(unix_timestamp)
 
-# timestamp_now = generate_unix_timestamp(seconds=0)
-
-# timestamp_30_seconds_ago = generate_unix_timestamp(seconds=30)
-
-# timestamp_10_minutes_ago = generate_unix_timestamp(minutes=10)
-
-# timestamp_250_minutes_ago = generate_unix_timestamp(minutes=250)
-
-# timestamp_15_hours_ago = generate_unix_timestamp(hours=15)
-
-# # For FIVE_MINUTE use, 5*350
-# timestamp_29_hours_ago = generate_unix_timestamp(hours=29)
-
-# timestamp_1_days_ago = generate_unix_timestamp(days=1)
-
-# timestamp_2_days_ago = generate_unix_timestamp(days=2)
-
 

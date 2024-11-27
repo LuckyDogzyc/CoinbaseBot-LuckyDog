@@ -13,7 +13,8 @@ def get_candles(minutes=0, hours=0, days=0, seconds=0):
     return client.get_candles(product_id = 'XRP-USD', start = start_time, end = endTime, granularity = "FIVE_MINUTE")
 
 candles = get_candles()
-print(candles)
+# print(candles)
 # print(client.get_unix_time().epoch_seconds)
+# print(generate_unix_timestamp())
 
 
