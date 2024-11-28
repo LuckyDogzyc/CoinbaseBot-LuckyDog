@@ -124,7 +124,7 @@ def percentage_market_order_sell(price, crypto_amount):
         # Use the SDK's built-in method to place a sell order
         order = client.market_order_sell(
             product_id=PRODUCT_ID, 
-            base_size=f"{sell_amount:.8f}",  # The amount of crypto to sell
+            base_size=f"{sell_amount:.2f}",  # The amount of crypto to sell
             client_order_id=order_id
         )
 

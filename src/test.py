@@ -25,6 +25,6 @@ order_id = str(uuid.uuid4())
 # Use the SDK's built-in method to place a sell order
 order = client.market_order_sell(
     product_id="XRP-USD", 
-    base_size=f"0.001",  # The amount of crypto to sell
+    base_size=f"51.03",  # The amount of crypto to sell
     client_order_id=order_id
 )
