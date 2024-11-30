@@ -7,6 +7,7 @@ from analysis import analysis
 from datetime import datetime
 from ollamaModel import call_llama_model
 from restClient import client
+from restClientHelper import market_order_buy, market_order_sell
 
 CRYPTO = "XRP"
 CASH = "USD"
@@ -200,49 +201,19 @@ def get_current_crypto_price():
         logger.exception(f"Failed to retrieve {CRYPTO} price.")
         return None
 
+# Analyse how many cryptos we should buy
+def analysis_buy_price(cash_balance, percent_b):
+    buy_percentage = (percent_b + 0.3) * 0.20
+    buy_amount = cash_balance * buy_percentage
+    print(f"Current {CASH} Balance: {cash_balance}, percent_b: {percent_b}, buy_percentage: {buy_percentage}, buy_amount: {buy_amount}")
+    return buy_amount
 
-# Place buy order for $2 worth of BTC
-def market_order_buy(price):
-    try:
-        amount_usdc = 2.00  # Trade $2 at a time
-        logger.info(f"Placing buy order for {amount_usdc:.2f} USDC at {price:.2f} USDC/BTC")
-
-        # Generate a unique order ID
-        order_id = str(uuid.uuid4())
-
-        # Use the SDK's built-in method to place a buy order
-        order = client.market_order_buy(
-            product_id=PRODUCT_ID, 
-            quote_size=f"{amount_usdc:.2f}",  # The amount of USDC to spend
-            client_order_id=order_id
-        )
-
-        logger.info(f"Buy order placed successfully at price {price:.2f} USDC/BTC")
-    except Exception as e:
-        logger.exception("Error placing buy order.")
-
-
-
-# Place sell order for $2 worth of BTC
-def market_order_sell(price):
-    try:
-        amount_btc = amount_usdc / price  # Convert $2 USDC to BTC at the current price
-        logger.info(f"Placing sell order for {amount_btc:.8f} BTC at {price:.2f} USDC/BTC")
-
-        # Generate a unique order ID
-        order_id = str(uuid.uuid4())
-
-        # Use the SDK's built-in method to place a sell order
-        order = client.market_order_sell(
-            product_id=PRODUCT_ID, 
-            base_size=f"{amount_btc:.8f}",  # The amount of crypto to sell
-            client_order_id=order_id
-        )
-
-        logger.info(f"Sell order placed successfully at price {price:.2f} {CASH}/{CRYPTO}")
-    except Exception as e:
-        logger.exception("Error placing sell order.")
-
+# Analyse how many cryptos we should sell
+def analysis_sell_price(crypto_balance, percent_b):
+    sell_percentage = min((1-percent_b) * 0.40, 1)
+    sell_amount = crypto_balance * sell_percentage
+    print(f"Current {CRYPTO} Balance: {crypto_balance}, percent_b: {percent_b}, sell_percentage: {sell_percentage}, sell_amount: {sell_amount}")
+    return sell_amount
 
 
 # Main trading logic
@@ -250,9 +221,9 @@ def main():
     logger.info("Starting main trading loop...")
     while True:
         # Get the current balances
-        crypto_amount, cash_amount = get_balances()
+        crypto_balance, cash_balance = get_balances()
 
-        if crypto_amount is None or cash_amount is None:
+        if crypto_balance is None or cash_balance is None:
             logger.warning("Failed to retrieve account balances. Skipping this cycle.")
             continue
 
@@ -270,8 +241,8 @@ def main():
             # Append the current price, balances, and recent trades to the prompt
             prompt += (
                 f"Current {CRYPTO} price: {current_price} {CASH}."
-                f"{CRYPTO} Balance: {crypto_amount} {CRYPTO}."
-                f"{CASH} Balance: {cash_amount} {CASH}."
+                f"{CRYPTO} Balance: {crypto_balance} {CRYPTO}."
+                f"{CASH} Balance: {cash_balance} {CASH}."
             )
 
             print("Prompt: ", prompt)
@@ -282,20 +253,22 @@ def main():
 
             # Execute the trade based on LLM's decision
             print("decision", decision)
-            # if decision == "BUY":
-            #     market_order_buy(current_price, cash)
-            # elif decision == "SELL":
-                # market_order_sell(current_price, crypto)
-            # else:
-            #     logger.info("Decision was to HOLD, or insufficient balance for trade.")
+            if decision == "BUY":
+                buy_amount = analysis_buy_price(crypto_balance, percent_b)
+                market_order_buy(PRODUCT_ID, buy_amount)
+                logger.info(f"Buy order placed successfully for {buy_amount:.2f} {CRYPTO}")
+            elif decision == "SELL":
+                sell_amount = analysis_sell_price(cash_balance, percent_b)
+                market_order_sell(PRODUCT_ID, sell_amount)
+                logger.info(f"Sell order placed successfully for {sell_amount:.2f} {CRYPTO}")
+            else:
+                logger.info("Decision was to HOLD, or insufficient balance for trade.")
 
         else:
             logger.warning("Failed to construct prompt for LLM. Skipping this cycle.")
 
-        # sleep for 5 minutes
-        time.sleep(300)
+        # sleep for 1 minutes
+        time.sleep(60)
 
 if __name__ == "__main__":
     main()
-
-

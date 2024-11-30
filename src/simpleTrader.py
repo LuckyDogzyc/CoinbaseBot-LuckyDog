@@ -1,3 +1,5 @@
+# The performance of this simple trader is not working good as expected.
+
 import logging
 import time
 import uuid
