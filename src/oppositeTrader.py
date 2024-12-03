@@ -142,45 +142,62 @@ def read_wsmonitor_output():
         return None
 
 def check_trading_conditions(data_points):
-    if not data_points or len(data_points) < 3:
-        return 'hold', 0  # 返回动作和交易百分比
+    if not data_points or len(data_points) < 4:
+        return 'hold', 0  # 需要至少4个数据点来检测符号变化后的连续性
 
-    # 初始化变量
-    streak = 0  # 连续满足条件的数据点数量
-    current_sign = None  # 当前 Ratio 的符号
+    # 获取最新的数据点和前一个数据点
+    latest_point = data_points[-1]
+    previous_point = data_points[-2]
 
-    # 倒序遍历数据点，检查连续性
-    for point in reversed(data_points):
-        if point['total_volume'] > 1400000:
-            ratio = point['ratio']
-            if current_sign is None:
-                # 第一个数据点，确定符号
-                current_sign = 'positive' if ratio > 0 else 'negative'
-                streak += 1
-            else:
-                # 检查符号是否一致
-                if (ratio > 0 and current_sign == 'positive') or (ratio < 0 and current_sign == 'negative'):
+    # 检查最新两个数据点的 Total Volume 是否满足条件
+    if latest_point['total_volume'] > 1400000 and previous_point['total_volume'] > 1400000:
+        latest_ratio = latest_point['ratio']
+        previous_ratio = previous_point['ratio']
+
+        # 获取符号
+        latest_sign = 'positive' if latest_ratio > 0 else 'negative' if latest_ratio < 0 else None
+        previous_sign = 'positive' if previous_ratio > 0 else 'negative' if previous_ratio < 0 else None
+
+        if latest_sign is None or previous_sign is None:
+            return 'hold', 0  # 如果任何一个 Ratio 为 0，选择 hold
+
+        if latest_sign != previous_sign:
+            # 符号发生变化，计算符号变化前连续相同符号的数据点数量
+            streak_sign = previous_sign
+            streak = 1  # 从 previous_point 开始计数
+
+            # 向前遍历，计算连续相同符号的数量
+            for i in range(len(data_points) - 3, -1, -1):
+                point = data_points[i]
+                if point['total_volume'] <= 1400000:
+                    break
+                ratio = point['ratio']
+                sign = 'positive' if ratio > 0 else 'negative' if ratio < 0 else None
+                if sign == streak_sign:
                     streak += 1
                 else:
-                    # 符号不一致，停止遍历
                     break
-        else:
-            # Total Volume 不满足条件，停止遍历
-            break
 
-    # 判断交易条件
-    if streak >= 3:
-        if current_sign == 'positive':
-            # 买入条件
-            percentage = min(3 + (streak - 3), 50)
-            logger.info(f"连续 {streak} 个数据点满足买入条件，买入 {percentage}% 的现金余额。")
-            return 'buy', percentage
-        elif current_sign == 'negative':
-            # 卖出条件
-            percentage = min(1 + (streak - 3), 50)
-            logger.info(f"连续 {streak} 个数据点满足卖出条件，卖出 {percentage}% 的持仓。")
-            return 'sell', percentage
+            # 如果连续数量达到要求，执行交易
+            if streak >= 3:
+                if previous_sign == 'positive' and latest_sign == 'negative':
+                    # 从正变负，执行卖出操作
+                    percentage = min(1 + (streak - 3), 50)
+                    logger.info(f"检测到从 {previous_sign} 到 {latest_sign} 的符号变化，之前连续 {streak} 个数据点。卖出 {percentage}% 的持仓。")
+                    return 'sell', percentage
+                elif previous_sign == 'negative' and latest_sign == 'positive':
+                    # 从负变正，执行买入操作
+                    percentage = min(3 + (streak - 3), 50)
+                    logger.info(f"检测到从 {previous_sign} 到 {latest_sign} 的符号变化，之前连续 {streak} 个数据点。买入 {percentage}% 的现金余额。")
+                    return 'buy', percentage
+            else:
+                # 连续数量不足，保持持仓
+                return 'hold', 0
+        else:
+            # 符号未变化，不进行交易
+            return 'hold', 0
     else:
+        # Total Volume 不满足条件，保持持仓
         return 'hold', 0
 
 
