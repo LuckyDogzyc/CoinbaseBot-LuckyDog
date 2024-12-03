@@ -2,7 +2,6 @@
 
 import logging
 import time
-import uuid
 from analysis import analysis
 from datetime import datetime
 from ollamaModel import call_llama_model
@@ -31,10 +30,13 @@ def make_llm_trade_decision(prompt):
             "You are an expert day trader utilizing a KNN prediction model for market analysis. "
             "Recent price movements indicate either an upward or downward trend. "
             "The RSI value indicates the strength of th trend. "
+            "If the trend just turns positive and the signal is 1, respond with BUY. "
+            "If the trend just turns negative and the signal is -1, respond with SELL. "
             "If the trend is positive and strong, respond with BUY. "
             "If the trend is negative and strong, respond with SELL. "
             "If the trend is unclear or weak, respond with HOLD. "
-            "Based on this prediction and your strategy, should we BUY, SELL, or HOLD? Respond with one word: BUY, SELL, or HOLD."
+            "Based on this prediction and your strategy, should we BUY, SELL, or HOLD? "
+            "Respond with one word: BUY, SELL, or HOLD."
         )
 
         logger.debug(f"Sending enhanced prompt to LLM:\n{enhanced_prompt}")
@@ -231,9 +233,9 @@ def main():
         prompt, best_bid, best_ask = get_product_book(PRODUCT_ID)
 
         # Add RSI and Bollinger Bands value to prompt
-        rsi, percent_b = analysis()
+        signal, rsi, percent_b = analysis()
         prompt += (
-                f"RSI value: {rsi:.2f}, Bollinger Bands% value: {percent_b:.2f}. "
+                f"singal: {signal}, RSI value: {rsi:.2f}, Bollinger Bands% value: {percent_b:.2f}. "
             )
 
         if prompt and best_bid and best_ask:

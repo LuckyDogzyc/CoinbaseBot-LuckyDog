@@ -10,7 +10,7 @@ from timeStamps import generate_unix_timestamp
 def get_candles(minutes=0, hours=0, days=0, seconds=0):
     endTime = generate_unix_timestamp(minutes, hours, days, seconds)
     start_time = generate_unix_timestamp(minutes + 250, hours, days, seconds)
-    return client.get_candles(product_id = 'XRP-USD', start = start_time, end = endTime, granularity = "FIVE_MINUTE")
+    return client.get_candles(product_id = 'XRP-USD', start = start_time, end = endTime, granularity = "ONE_MINUTE")
 
 candles = get_candles()
 # print(candles)

@@ -14,6 +14,7 @@ def analysis(minutes=0, hours=0, days=0, seconds=0):
     # print(latest_data)
 
     # # 判断当前走势
+    signal = latest_data['signal']
     # if latest_data['signal'] == 1:
     #     print("出现金叉信号，可能是买入机会。")
     # elif latest_data['signal'] == -1:
@@ -33,9 +34,9 @@ def analysis(minutes=0, hours=0, days=0, seconds=0):
     # elif percent_b < 0:
     #     print("价格低于布林带下轨，可能超卖。")
 
-    print(f"TimeFrame: {latest_data['start']}, RSI value: {rsi:.2f}, Bollinger Bands% value: {percent_b:.2f}. ")
+    print(f"TimeFrame: {latest_data['start']}, signal: {signal}, RSI value: {rsi:.2f}, Bollinger Bands% value: {percent_b:.2f}. ")
     # print(f"Low: {latest_data['low']}, High: {latest_data['high']}, Open: {latest_data['open']}, Close: {latest_data['close']}")
-    return rsi, percent_b
+    return signal, rsi, percent_b
 
 def main():
     analysis()

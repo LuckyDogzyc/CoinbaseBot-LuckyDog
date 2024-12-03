@@ -101,9 +101,9 @@ def get_latest_indicators(df):
 
 def main():
     # 处理蜡烛数据
-    df = process_candle_data(get_candles())
+    df_candle_data = process_candle_data(get_candles())
     # 计算指标
-    df = calculate_indicators(df)
+    df = calculate_indicators(df_candle_data)
     # 检测金叉和死叉
     df = detect_golden_death_cross(df)
     # 获取最新的指标和信号
@@ -126,6 +126,7 @@ def main():
         f"最新收盘价: {indicators['close_price']:.4f}, MA5: {indicators['MA5']:.4f}, MA10: {indicators['MA10']:.4f}, "
         f"上轨: {indicators['UpperBand']:.4f}, 中轨: {indicators['MiddleBand']:.4f}, 下轨: {indicators['LowerBand']:.4f}, "
         f"RSI: {indicators['RSI']:.2f}, Signal: {indicators['Signal']}"
+        f"Candle Data: {df_candle_data}"
     )
 
     print(log_message)
