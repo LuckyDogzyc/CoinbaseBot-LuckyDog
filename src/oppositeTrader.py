@@ -127,6 +127,8 @@ def read_wsmonitor_output():
                 if total_volume_match and ratio_match:
                     total_volume = float(total_volume_match.group(1))
                     ratio = float(ratio_match.group(1))
+                    if total_volume == 0 or ratio == 0.0:
+                        raise Exception(f"Total Volume is {total_volume}, Ratio is {ratio}, please check web socket connection")
                     data_points.append({'total_volume': total_volume, 'ratio': ratio})
             except Exception as e:
                 logger.exception("解析数据点时出错。")
@@ -163,7 +165,6 @@ def check_trading_conditions(data_points):
     if latest_sign != previous_sign:
         # 从 previous_point 开始
         for i in range(len(data_points) - 2, -1, -1):
-            print(streak)
             point = data_points[i]
             ratio = point['ratio']
             total_volume = point['total_volume']

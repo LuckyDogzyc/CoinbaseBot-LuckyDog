@@ -14,6 +14,9 @@ PRODUCT_IDS = ["XRP-USD"]  # 替换为您感兴趣的交易对
 # 定义时间窗口（例如，最近1分钟）
 WINDOW_DURATION = timedelta(minutes=1)
 
+# 添加一个全局变量，用于跟踪是否已发送警报
+alert_sent = False
+
 def on_message(ws, message):
     data = json.loads(message)
     if data['type'] == 'match':
@@ -46,18 +49,35 @@ def on_open(ws):
     ws.send(json.dumps(subscribe_message))
 
 def start_websocket():
-    ws = websocket.WebSocketApp(
-        "wss://ws-feed.exchange.coinbase.com",
-        on_open=on_open,
-        on_message=on_message,
-        on_error=on_error,
-        on_close=on_close
-    )
-    ws.run_forever()
+    while True:
+        ws = websocket.WebSocketApp(
+            "wss://ws-feed.exchange.coinbase.com",
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=on_close
+        )
+
+        # 定义一个函数，在50分钟后关闭WebSocket连接
+        def close_ws():
+            print("Closing WebSocket connection after 50 minutes")
+            ws.close()
+
+        # 设置定时器，在50分钟后调用close_ws函数
+        timer = threading.Timer(50 * 60, close_ws)
+        timer.start()
+
+        # 运行WebSocket，直到连接关闭
+        ws.run_forever()
+        timer.cancel()
+
+        print("WebSocket connection closed, restarting in 1 second")
+        time.sleep(1)  # 等待一秒钟后重新启动连接
 
 def process_trade_data():
+    global alert_sent
     while True:
-        # 等待一定时间间隔（例如，每10秒处理一次数据）
+        # 等待一定时间间隔（例如，每30秒处理一次数据）
         time.sleep(30)
 
         # 获取当前时间
@@ -82,6 +102,14 @@ def process_trade_data():
         # Send notification to discord if reach specific condition
         if total_volume >= VOLUME_THRESHOLD:
             send_discord_notification(result)
+
+        # 当交易量为零且尚未发送警报时，发送一次性警报
+        if total_volume == 0 and not alert_sent:
+            send_discord_notification("警报：在最近的时间窗口内未收到任何交易数据。")
+            alert_sent = True
+        elif total_volume > 0:
+            # 当交易量恢复时，重置alert_sent
+            alert_sent = False
 
         # 清理过期的交易数据，防止列表无限增长
         trade_data[:] = [trade for trade in trade_data if trade['time'] >= window_start]
@@ -110,11 +138,10 @@ def write_to_file(input, max_lines=1000):
     except Exception as e:
         raise Exception(f"写入文件时发生错误：{e}")
 
-
 def calculate_ratio(buy_volume, sell_volume):
-    if buy_volume > sell_volume:
+    if buy_volume > sell_volume and sell_volume != 0:
         return ((buy_volume - sell_volume) / sell_volume) * 100
-    elif sell_volume > buy_volume:
+    elif sell_volume > buy_volume and buy_volume != 0:
         return -((sell_volume - buy_volume) / buy_volume) * 100
     else:
         return 0.0
