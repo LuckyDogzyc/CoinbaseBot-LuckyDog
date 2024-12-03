@@ -11,6 +11,7 @@ CRYPTO = "XRP"
 CASH = "USD"
 PRODUCT_ID = "XRP-USD"
 WAIT_TIME = 30
+THREASHOLD = 1400000
 
 # Configure logging
 logging.basicConfig(
@@ -142,62 +143,52 @@ def read_wsmonitor_output():
         return None
 
 def check_trading_conditions(data_points):
-    if not data_points or len(data_points) < 4:
-        return 'hold', 0  # 需要至少4个数据点来检测符号变化后的连续性
+    if not data_points or len(data_points) < 2:
+        return 'hold', 0
 
     # 获取最新的数据点和前一个数据点
     latest_point = data_points[-1]
     previous_point = data_points[-2]
 
-    # 检查最新两个数据点的 Total Volume 是否满足条件
-    if latest_point['total_volume'] > 1400000 and previous_point['total_volume'] > 1400000:
-        latest_ratio = latest_point['ratio']
-        previous_ratio = previous_point['ratio']
+    latest_ratio = latest_point['ratio']
+    previous_ratio = previous_point['ratio']
 
-        # 获取符号
-        latest_sign = 'positive' if latest_ratio > 0 else 'negative' if latest_ratio < 0 else None
-        previous_sign = 'positive' if previous_ratio > 0 else 'negative' if previous_ratio < 0 else None
+    latest_sign = 'positive' if latest_ratio > 0 else 'negative'
+    previous_sign = 'positive' if previous_ratio > 0 else 'negative'
 
-        if latest_sign is None or previous_sign is None:
-            return 'hold', 0  # 如果任何一个 Ratio 为 0，选择 hold
+    sign = previous_sign
+    streak = 0
+    isThreasholdReached = False
 
-        if latest_sign != previous_sign:
-            # 符号发生变化，计算符号变化前连续相同符号的数据点数量
-            streak_sign = previous_sign
-            streak = 1  # 从 previous_point 开始计数
+    if latest_sign != previous_sign:
+        # 从 previous_point 开始
+        for i in range(len(data_points) - 2, -1, -1):
+            print(streak)
+            point = data_points[i]
+            ratio = point['ratio']
+            total_volume = point['total_volume']
+            sign = 'positive' if ratio > 0 else 'negative'
+            if sign != previous_sign: 
+                break
+            streak += 1
+            if total_volume > THREASHOLD: 
+                isThreasholdReached = True
 
-            # 向前遍历，计算连续相同符号的数量
-            for i in range(len(data_points) - 3, -1, -1):
-                point = data_points[i]
-                if point['total_volume'] <= 1400000:
-                    break
-                ratio = point['ratio']
-                sign = 'positive' if ratio > 0 else 'negative' if ratio < 0 else None
-                if sign == streak_sign:
-                    streak += 1
-                else:
-                    break
-
-            # 如果连续数量达到要求，执行交易
-            if streak >= 3:
-                if previous_sign == 'positive' and latest_sign == 'negative':
-                    # 从正变负，执行卖出操作
-                    percentage = min(1 + (streak - 3), 50)
-                    logger.info(f"检测到从 {previous_sign} 到 {latest_sign} 的符号变化，之前连续 {streak} 个数据点。卖出 {percentage}% 的持仓。")
-                    return 'sell', percentage
-                elif previous_sign == 'negative' and latest_sign == 'positive':
-                    # 从负变正，执行买入操作
-                    percentage = min(3 + (streak - 3), 50)
-                    logger.info(f"检测到从 {previous_sign} 到 {latest_sign} 的符号变化，之前连续 {streak} 个数据点。买入 {percentage}% 的现金余额。")
-                    return 'buy', percentage
-            else:
-                # 连续数量不足，保持持仓
-                return 'hold', 0
+        # 如果有datapoint达到THREASHOLD
+        if isThreasholdReached:
+            if previous_sign == 'positive' and latest_sign == 'negative':
+                # 从正变负，执行卖出操作
+                percentage = min(streak, 20)
+                logger.info(f"检测到从 {previous_sign} 到 {latest_sign} 的符号变化，之前连续 {streak} 个数据点。卖出 {percentage}% 的持仓。")
+                return 'sell', percentage
+            elif previous_sign == 'negative' and latest_sign == 'positive':
+                # 从负变正，执行买入操作
+                percentage = min(streak * 2, 20)
+                logger.info(f"检测到从 {previous_sign} 到 {latest_sign} 的符号变化，之前连续 {streak} 个数据点。买入 {percentage}% 的现金余额。")
+                return 'buy', percentage
         else:
-            # 符号未变化，不进行交易
             return 'hold', 0
     else:
-        # Total Volume 不满足条件，保持持仓
         return 'hold', 0
 
 
@@ -226,10 +217,10 @@ def main():
         # print(crypto_amount, cash_amount, current_price)
 
         if action == 'sell' and percentage > 0:
-            logger.info(f"满足卖出条件，连续满足条件的数据点数量：{percentage + 2}，卖出 {percentage}% 的持仓。")
+            logger.info(f"满足卖出条件，卖出 {percentage}% 的持仓。")
             percentage_market_order_sell(current_price, crypto_amount, percentage)
         elif action == 'buy' and percentage > 0:
-            logger.info(f"满足买入条件，连续满足条件的数据点数量：{percentage}，买入 {percentage}% 的现金余额。")
+            logger.info(f"满足买入条件，买入 {percentage}% 的现金余额。")
             percentage_market_order_buy(current_price, cash_amount, percentage)
         else:
             logger.info("未满足交易条件，保持持仓。")
